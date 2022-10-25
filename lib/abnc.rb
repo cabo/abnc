@@ -29,7 +29,7 @@ module Peggy
     private
 
       def build
-        self.ignore_productions = [:ws, :s]
+#       self.ignore_productions = [:ws, :s]
 
         grammar{seq{many{prod}; eof}}
         prodname{lit /[A-Za-z][-A-Za-z0-9]*/}
@@ -58,7 +58,7 @@ module Peggy
           }
         }
         numlit{alt{
-            lit /%x[0-9A-Fa-f][0-9A-Fa-f]([-.][0-9A-Fa-f][0-9A-Fa-f])*/
+            lit /%x[0-9A-Fa-f]+([-.][0-9A-Fa-f]+)*/
             lit /%d[0-9]+([-.][0-9]+)*/
           }}
         casein{lit /"[^"]+"/} # "
@@ -127,13 +127,15 @@ module Peggy
       if c = prodatom.numlit
         /^%([xd])([0-9A-Fa-f]+)(.*)/ =~ c.to_s
         m = {"x" => :hex, "d" => :to_i}[$1];
-        r = $2.send(m).chr
+        r = $2.send(m).chr(Encoding::UTF_8)
+        r[0,0] = "\\" if ["\\", "[", "]"].include?(r)
         s = $3
         if s != ''
           if s[0..0] == '.'
             r += s[1..-1].split('.').map{ |x| x.send(m).chr}.join('')
           else                  # XXX: need to barf if more than one...
-            t = s[1..-1].send(m).chr
+            t = s[1..-1].send(m).chr(Encoding::UTF_8)
+            t[0,0] = "\\" if ["\\", "[", "]"].include?(t)
             r = /[#{r}-#{t}]/
           end
         end
